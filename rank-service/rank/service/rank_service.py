@@ -3,10 +3,21 @@ from random import sample
 import rank.dataset.feature as feature
 import numpy as np
 import rank.model.mlp as mlp
-
+from rank.util.ab_test import bucketize
 model = mlp.MLPModel()
 
-def anime_rank(context, n):
+def anime_rank(context):
+    user_id = context.user_id
+    recall_items = recall_client.get_recall(user_id)
+    bucket = bucketize(user_id,2)
+    recall_res = [item['anime_id']for item in recall_items]
+    recall_mapping = {item['anime']:item for item in recall_items}
+    rank_results = recall_res
+    if bucket == 1:
+        rank_results = mlp_rank(context,recall_res)
+    return [{**recall_mapping[aid],'ab:rank':bucket} for aid in rank_results]
+
+def mlp_rank(context, recall_res):
     user_id = context.user_id
     recall_res = recall_client.get_recall(user_id)
 
